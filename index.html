@@ -474,7 +474,7 @@
         
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
-            //initializeApp();
+            initializeApp();
             setupEventListeners();
             setDefaultDate();
             setDefaultTime();
@@ -498,6 +498,14 @@
                 })
                 .catch(err => {
                     console.error('LIFF初始化失敗:', err);
+                });
+                liff.getProfile()
+                .then(profile => {
+                    document.getElementById('hiddenUserId').value = profile.userId;
+                })
+                .catch(err => {
+                    console.log('無法獲取用戶資料，但仍可預約');
+                    document.getElementById('hiddenUserId').value = 'unknown';
                 });
         }
         
