@@ -443,6 +443,12 @@
             <div id="successDetails"></div>
             <p>我們會盡快與您確認預約</p>
             <div class="countdown" id="countdown">窗口將在5秒後關閉...</div>
+        <!-- 要刪掉訊息 -->
+            <button onclick="showUserId()" style="padding: 10px; background: #4CAF50; color: white; border: none; border-radius: 5px;">
+            顯示我的用戶ID（測試用）
+            </button>
+            <div id="userIdDisplay" style="margin-top: 10px; font-size: 12px; word-break: break-all;"></div>
+        <!-- 要刪掉訊息 -->
         </div>
         
         <!-- 錯誤訊息 -->
@@ -464,6 +470,7 @@
             <input type="hidden" name="service" id="hiddenService">
             <input type="hidden" name="notes" id="hiddenNotes">
             <input type="hidden" name="userId" id="hiddenUserId">
+            <input type="hidden" name="replyToken" id="hiddenReplyToken">
         </form>
         
         <iframe name="hiddenIframe" id="hiddenIframe" class="hidden"></iframe>
@@ -486,6 +493,7 @@
             setDefaultTime();
         });
         
+        // 在 LIFF 初始化時獲取 replyToken
         function initializeApp() {
             liff.init({ liffId: '2008164171-NKRDKWv0' })
                 .then(() => {
@@ -494,21 +502,51 @@
                         liff.login();
                         return;
                     }
-                    return liff.getProfile();
+                    
+                    // 獲取用戶資料和上下文
+                    return Promise.all([
+                        liff.getProfile(),
+                        liff.getDecodedIDToken() // 獲取包含 replyToken 的資訊
+                    ]);
                 })
-                .then(profile => {
+                .then(([profile, idToken]) => {
                     if (profile) {
-                        console.log('用戶ID:', profile.userId);
                         document.getElementById('hiddenUserId').value = profile.userId;
-                    } else {
-                        document.getElementById('hiddenUserId').value = 'unknown';
+                        // 儲存 replyToken 供後續使用
+                        if (idToken && idToken.sub) {
+                            document.getElementById('hiddenReplyToken').value = idToken.sub;
+                        }
                     }
                 })
                 .catch(err => {
                     console.error('LIFF初始化失敗:', err);
-                    document.getElementById('hiddenUserId').value = 'unknown';
                 });
         }
+
+
+        // function initializeApp() {
+        //     liff.init({ liffId: '2008164171-NKRDKWv0' })
+        //         .then(() => {
+        //             console.log('LIFF 初始化成功');
+        //             if (!liff.isLoggedIn()) {
+        //                 liff.login();
+        //                 return;
+        //             }
+        //             return liff.getProfile();
+        //         })
+        //         .then(profile => {
+        //             if (profile) {
+        //                 console.log('用戶ID:', profile.userId);
+        //                 document.getElementById('hiddenUserId').value = profile.userId;
+        //             } else {
+        //                 document.getElementById('hiddenUserId').value = 'unknown';
+        //             }
+        //         })
+        //         .catch(err => {
+        //             console.error('LIFF初始化失敗:', err);
+        //             document.getElementById('hiddenUserId').value = 'unknown';
+        //         });
+        // }
         
         function setupEventListeners() {
             // 設計師選擇
@@ -726,6 +764,12 @@
         function showError(message) {
             document.getElementById('errorMessage').textContent = message;
             document.getElementById('errorMessage').classList.remove('hidden');
+        }
+        //要刪掉
+        function showUserId() {
+        const userId = document.getElementById('hiddenUserId').value;
+        document.getElementById('userIdDisplay').innerHTML = 
+            '您的用戶ID: <strong>' + userId + '</strong>';
         }
     </script>
 </body>
