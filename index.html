@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -261,6 +260,12 @@
             margin-top: 10px;
             text-align: center;
         }
+        
+        .countdown {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -276,22 +281,22 @@
                 <div class="section-title">👨‍🎨 選擇設計師</div>
                 <div class="designer-grid">
                     <div class="designer-card" data-designer="正宗 店長">
-                        <div></div>
+                        <div>💇‍♂️</div>
                         <div class="designer-name">正宗 店長</div>
                         <div class="designer-specialty">男士理髮.韓系燙髮.髮型修正.漸層推剪.韓系C字彎燙.手棒燙⋯⋯</div>
                     </div>
                     <div class="designer-card" data-designer="Liva 設計師">
-                        <div></div>
+                        <div>💇‍♀️</div>
                         <div class="designer-name">Liva 設計師</div>
                         <div class="designer-specialty">男士理髮.女仕髮型.油頭.男士紋理燙.女神雲朵燙⋯⋯</div>
                     </div>
                     <div class="designer-card" data-designer="Mei 設計師">
-                        <div></div>
+                        <div>💇‍♀️</div>
                         <div class="designer-name">Mei 設計師</div>
                         <div class="designer-specialty">女仕髮型.女神雲朵燙.韓系霧感棕色.染髮</div>
                     </div>
                     <div class="designer-card" data-designer="頭皮養護師">
-                        <div></div>
+                        <div>💆‍♂️</div>
                         <div class="designer-name">頭皮養護師</div>
                         <div class="designer-specialty">頭皮舒壓SPA（含肩頸按摩）</div>
                     </div>
@@ -437,7 +442,7 @@
             <h3>🎉 預約成功！</h3>
             <div id="successDetails"></div>
             <p>我們會盡快與您確認預約</p>
-            <p>窗口將在5秒後關閉...</p>
+            <div class="countdown" id="countdown">窗口將在5秒後關閉...</div>
         </div>
         
         <!-- 錯誤訊息 -->
@@ -471,6 +476,7 @@
         let selectedDate = '';
         let selectedTime = '';
         let selectedService = '';
+        let countdownTimer = null;
         
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
@@ -481,30 +487,35 @@
         });
         
         function initializeApp() {
-            // LIFF 初始化
+            // LIFF 初始化 - 修正版本
             liff.init({ liffId: '2008164171-NKRDKWv0' })
                 .then(() => {
                     console.log('LIFF 初始化成功');
+                    
+                    // 檢查登入狀態
                     if (!liff.isLoggedIn()) {
+                        console.log('用戶未登入，執行登入');
                         liff.login();
                         return;
                     }
+                    
+                    // 獲取用戶資料 - 只呼叫一次
                     return liff.getProfile();
                 })
                 .then(profile => {
                     if (profile) {
+                        console.log('成功獲取用戶資料:', profile);
+                        // 正確設置 userId
+                        document.getElementById('hiddenUserId').value = profile.userId;
                         document.getElementById('hiddenForm').dataset.userId = profile.userId;
+                    } else {
+                        console.log('無法獲取用戶資料');
+                        document.getElementById('hiddenUserId').value = 'unknown';
                     }
                 })
                 .catch(err => {
                     console.error('LIFF初始化失敗:', err);
-                });
-                liff.getProfile()
-                .then(profile => {
-                    document.getElementById('hiddenUserId').value = profile.userId;
-                })
-                .catch(err => {
-                    console.log('無法獲取用戶資料，但仍可預約');
+                    // 即使失敗也允許預約
                     document.getElementById('hiddenUserId').value = 'unknown';
                 });
         }
@@ -530,6 +541,12 @@
             document.getElementById('nextBtn2').addEventListener('click', nextToStep3);
             document.getElementById('backBtn2').addEventListener('click', backToStep2);
             document.getElementById('submitBtn').addEventListener('click', submitReservation);
+            
+            // iframe 載入監聽
+            document.getElementById('hiddenIframe').addEventListener('load', function() {
+                console.log('iframe 載入完成');
+                showSuccess();
+            });
         }
         
         function setDefaultDate() {
@@ -554,18 +571,25 @@
                 defaultTime = `${(currentHour + 1).toString().padStart(2, '0')}:00`;
             }
             
-            // 確保時間在營業時間內
-            if (currentHour < 9) defaultTime = '09:00';
-            if (currentHour >= 18) {
+            // 確保時間在營業時間內 (11:00-20:30)
+            if (currentHour < 11) defaultTime = '11:00';
+            if (currentHour >= 20) {
                 // 如果現在是晚上，設置明天第一個時段
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 document.getElementById('date').value = tomorrow.toISOString().split('T')[0];
                 selectedDate = tomorrow.toISOString().split('T')[0];
-                defaultTime = '09:00';
+                defaultTime = '11:00';
             }
             
-            document.getElementById('time').value = defaultTime;
+            // 確保時間在選項範圍內
+            const timeSelect = document.getElementById('time');
+            const timeOptions = Array.from(timeSelect.options).map(opt => opt.value);
+            if (!timeOptions.includes(defaultTime)) {
+                defaultTime = timeOptions[1] || '11:00'; // 第一個有效選項
+            }
+            
+            timeSelect.value = defaultTime;
             selectedTime = defaultTime;
         }
         
@@ -661,6 +685,10 @@
         function submitReservation() {
             showLoading('提交預約中...');
             
+            // 獲取當前 userId
+            const userId = document.getElementById('hiddenUserId').value || 'unknown';
+            console.log('提交預約，用戶ID:', userId);
+            
             // 填充隱藏表單
             document.getElementById('hiddenDesigner').value = selectedDesigner;
             document.getElementById('hiddenDate').value = selectedDate;
@@ -669,7 +697,7 @@
             document.getElementById('hiddenPhone').value = document.getElementById('phone').value;
             document.getElementById('hiddenService').value = selectedService;
             document.getElementById('hiddenNotes').value = document.getElementById('notes').value;
-            document.getElementById('hiddenUserId').value = document.getElementById('hiddenForm').dataset.userId || 'unknown';
+            document.getElementById('hiddenUserId').value = userId;
             
             // 設置成功訊息內容
             const successDetails = `
@@ -683,34 +711,50 @@
             `;
             document.getElementById('successDetails').innerHTML = successDetails;
             
-            // 設置 iframe 載入完成後的回調
-            document.getElementById('hiddenIframe').onload = function() {
-                showSuccess();
-            };
-            
             // 提交隱藏表單
             document.getElementById('hiddenForm').submit();
             
             // 設置超時處理（以防 iframe 載入失敗）
             setTimeout(() => {
                 if (document.getElementById('successMessage').style.display !== 'block') {
+                    console.log('表單提交超時，顯示成功訊息');
                     showSuccess();
                 }
             }, 3000);
         }
         
         function showSuccess() {
+            console.log('顯示成功訊息');
             document.getElementById('loadingMessage').classList.add('hidden');
             document.getElementById('successMessage').classList.remove('hidden');
             document.getElementById('step3').classList.add('hidden');
             
-            // 5秒後關閉視窗
-            setTimeout(() => {
-                document.write('5秒後關閉視窗');
-                if (liff.isInClient()) {
-                    liff.closeWindow();
+            // 開始倒數計時
+            startCountdown(5);
+        }
+        
+        function startCountdown(seconds) {
+            let countdown = seconds;
+            const countdownElement = document.getElementById('countdown');
+            
+            countdownTimer = setInterval(() => {
+                countdownElement.textContent = `窗口將在${countdown}秒後關閉...`;
+                countdown--;
+                
+                if (countdown < 0) {
+                    clearInterval(countdownTimer);
+                    closeWindow();
                 }
-            }, 5000);
+            }, 1000);
+        }
+        
+        function closeWindow() {
+            if (liff.isInClient()) {
+                liff.closeWindow();
+            } else {
+                // 如果不是在 LINE 內，顯示提示訊息
+                document.getElementById('countdown').textContent = '預約已完成！您可以關閉此視窗。';
+            }
         }
         
         function showLoading(message) {
@@ -722,26 +766,6 @@
             document.getElementById('errorMessage').textContent = message;
             document.getElementById('errorMessage').classList.remove('hidden');
         }
-        
-        // 工具函數：格式化日期
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('zh-TW', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                weekday: 'long'
-            });
-        }
-        // 在 LIFF 初始化時獲取 User ID
-        liff.getProfile()
-        .then(profile => {
-            document.getElementById('hiddenUserId').value = profile.userId;
-        })
-        .catch(err => {
-            console.log('無法獲取用戶資料，但仍可預約');
-            document.getElementById('hiddenUserId').value = 'unknown';
-        });
     </script>
 </body>
 </html>
