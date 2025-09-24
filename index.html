@@ -697,6 +697,7 @@
             
             // 5秒後關閉視窗
             setTimeout(() => {
+                document.write(‘5秒後關閉視窗’);
                 if (liff.isInClient()) {
                     liff.closeWindow();
                 }
@@ -723,6 +724,15 @@
                 weekday: 'long'
             });
         }
+        // 在 LIFF 初始化時獲取 User ID
+        liff.getProfile()
+        .then(profile => {
+            document.getElementById('hiddenUserId').value = profile.userId;
+        })
+        .catch(err => {
+            console.log('無法獲取用戶資料，但仍可預約');
+            document.getElementById('hiddenUserId').value = 'unknown';
+        });
     </script>
 </body>
 </html>
