@@ -1,140 +1,457 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>預約表單</title>
+    <title>美髮預約系統</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"></script>
     <style>
+        :root {
+            --primary-color: #e91e63;
+            --secondary-color: #ff80ab;
+            --accent-color: #f8bbd9;
+            --text-color: #333;
+            --border-color: #ddd;
+            --success-color: #4caf50;
+            --error-color: #f44336;
+        }
+        
         body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Helvetica Neue', 'Microsoft JhengHei', Arial, sans-serif;
             max-width: 500px;
             margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+            padding: 0;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
         }
-        .form-container {
+        
+        .container {
             background: white;
+            min-height: 100vh;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
         }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--accent-color);
+        }
+        
+        .header h1 {
+            color: var(--primary-color);
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        .header .subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .form-section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title i {
+            margin-right: 8px;
+        }
+        
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
+        
         label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
         }
+        
         input, select, textarea {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-sizing: border-box;
-        }
-        button {
-            width: 100%;
             padding: 12px;
-            background-color: #06C755;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .required::after {
+            content: " *";
+            color: var(--error-color);
+        }
+        
+        .designer-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .designer-card {
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .designer-card.selected {
+            border-color: var(--primary-color);
+            background-color: var(--accent-color);
+        }
+        
+        .designer-card img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 8px;
+        }
+        
+        .designer-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .designer-specialty {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .availability-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+        
+        .time-slots {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .time-slot {
+            padding: 10px 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        
+        .time-slot.available {
+            background: white;
+            color: var(--text-color);
+        }
+        
+        .time-slot.available:hover {
+            border-color: var(--primary-color);
+        }
+        
+        .time-slot.selected {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .time-slot.booked {
+            background: #f0f0f0;
+            color: #999;
+            cursor: not-allowed;
+        }
+        
+        .service-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .service-option {
+            padding: 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .service-option.selected {
+            border-color: var(--primary-color);
+            background-color: var(--accent-color);
+        }
+        
+        .service-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
             border: none;
-            border-radius: 5px;
-            font-size: 16px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
             cursor: pointer;
+            transition: transform 0.2s;
         }
-        button:disabled {
-            background-color: #ccc;
+        
+        .button:active {
+            transform: scale(0.98);
         }
-        .success-message {
-            color: green;
+        
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
             text-align: center;
             display: none;
-            padding: 15px;
-            background-color: #f0fff0;
-            border-radius: 5px;
-            margin-top: 15px;
         }
-        .error-message {
-            color: red;
-            text-align: center;
-            display: none;
-            padding: 15px;
-            background-color: #fff0f0;
-            border-radius: 5px;
-            margin-top: 15px;
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
         }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
         .hidden {
             display: none;
+        }
+        
+        .confirmation-details {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .detail-value {
+            color: #333;
         }
     </style>
 </head>
 <body>
-    <div class="form-container">
-        <h2>預約表單</h2>
+    <div class="container">
+        <div class="header">
+            <h1>💇‍♀️ 美髮預約系統</h1>
+            <div class="subtitle">選擇您喜愛的設計師與預約時段</div>
+        </div>
         
-        <!-- 主要表單（用戶看到的） -->
-        <div id="mainForm">
-            <form id="reservationForm">
+        <!-- 步驟1: 選擇設計師和日期 -->
+        <div id="step1">
+            <div class="form-section">
+                <div class="section-title">👨‍🎨 選擇設計師</div>
+                <div class="designer-grid">
+                    <div class="designer-card" data-designer="設計師A">
+                        <div>💇‍♀️</div>
+                        <div class="designer-name">設計師 A</div>
+                        <div class="designer-specialty">剪染燙專家</div>
+                    </div>
+                    <div class="designer-card" data-designer="設計師B">
+                        <div>💇‍♂️</div>
+                        <div class="designer-name">設計師 B</div>
+                        <div class="designer-specialty">造型設計</div>
+                    </div>
+                    <div class="designer-card" data-designer="設計師C">
+                        <div>💇‍♀️</div>
+                        <div class="designer-name">設計師 C</div>
+                        <div class="designer-specialty">護髮專家</div>
+                    </div>
+                    <div class="designer-card" data-designer="設計師D">
+                        <div>💇‍♂️</div>
+                        <div class="designer-name">設計師 D</div>
+                        <div class="designer-specialty">快速剪髮</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <div class="section-title">📅 選擇預約日期</div>
                 <div class="form-group">
-                    <label for="name">姓名 *</label>
+                    <label for="date" class="required">預約日期</label>
+                    <input type="date" id="date" name="date" required>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <div class="section-title">⏰ 可預約時段</div>
+                <div id="availabilitySection" class="availability-section hidden">
+                    <div id="availabilityInfo"></div>
+                    <div id="timeSlots" class="time-slots"></div>
+                </div>
+                <div id="noAvailability" class="message error hidden">
+                    該日期無可用時段，請選擇其他日期
+                </div>
+            </div>
+            
+            <button type="button" id="nextBtn1" class="button">下一步：填寫資料</button>
+        </div>
+        
+        <!-- 步驟2: 填寫個人資料和服務 -->
+        <div id="step2" class="hidden">
+            <div class="form-section">
+                <div class="section-title">👤 個人資料</div>
+                <div class="form-group">
+                    <label for="name" class="required">姓名</label>
                     <input type="text" id="name" name="name" required placeholder="請輸入您的姓名">
                 </div>
                 
                 <div class="form-group">
-                    <label for="phone">電話 *</label>
+                    <label for="phone" class="required">電話</label>
                     <input type="tel" id="phone" name="phone" required placeholder="請輸入您的電話號碼">
                 </div>
-                
-                <div class="form-group">
-                    <label for="email">電子郵件</label>
-                    <input type="email" id="email" name="email" placeholder="請輸入您的電子郵件">
+            </div>
+            
+            <div class="form-section">
+                <div class="section-title">💈 服務項目</div>
+                <div class="service-options">
+                    <div class="service-option" data-service="剪髮">
+                        <div class="service-icon">✂️</div>
+                        <div>剪髮</div>
+                    </div>
+                    <div class="service-option" data-service="染髮">
+                        <div class="service-icon">🎨</div>
+                        <div>染髮</div>
+                    </div>
+                    <div class="service-option" data-service="燙髮">
+                        <div class="service-icon">🔥</div>
+                        <div>燙髮</div>
+                    </div>
+                    <div class="service-option" data-service="護髮">
+                        <div class="service-icon">💆‍♀️</div>
+                        <div>護髮</div>
+                    </div>
                 </div>
-                
+            </div>
+            
+            <div class="form-section">
+                <div class="section-title">📝 備註說明</div>
                 <div class="form-group">
-                    <label for="date">預約日期 *</label>
-                    <input type="date" id="date" name="date" required>
+                    <textarea id="notes" name="notes" placeholder="如有特殊需求或備註請在此說明"></textarea>
                 </div>
-                
-                <div class="form-group">
-                    <label for="time">預約時間 *</label>
-                    <input type="time" id="time" name="time" required>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button type="button" id="backBtn1" class="button" style="background: #666;">上一步</button>
+                <button type="button" id="nextBtn2" class="button">下一步：確認預約</button>
+            </div>
+        </div>
+        
+        <!-- 步驟3: 確認預約 -->
+        <div id="step3" class="hidden">
+            <div class="form-section">
+                <div class="section-title">✅ 確認預約資訊</div>
+                <div class="confirmation-details">
+                    <div class="detail-item">
+                        <span class="detail-label">設計師：</span>
+                        <span class="detail-value" id="confirmDesigner"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">預約時間：</span>
+                        <span class="detail-value" id="confirmDateTime"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">姓名：</span>
+                        <span class="detail-value" id="confirmName"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">電話：</span>
+                        <span class="detail-value" id="confirmPhone"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">服務項目：</span>
+                        <span class="detail-value" id="confirmService"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">備註：</span>
+                        <span class="detail-value" id="confirmNotes"></span>
+                    </div>
                 </div>
-                
-                <div class="form-group">
-                    <label for="serviceType">服務類型 *</label>
-                    <select id="serviceType" name="serviceType" required>
-                        <option value="">請選擇</option>
-                        <option value="諮詢">諮詢服務</option>
-                        <option value="維修">設備維修</option>
-                        <option value="保養">定期保養</option>
-                        <option value="其他">其他服務</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="notes">備註</label>
-                    <textarea id="notes" name="notes" rows="3" placeholder="如有其他需求請在此備註"></textarea>
-                </div>
-                
-                <button type="button" id="submitBtn">提交預約</button>
-            </form>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button type="button" id="backBtn2" class="button" style="background: #666;">上一步</button>
+                <button type="button" id="submitBtn" class="button">確認提交預約</button>
+            </div>
         </div>
         
         <!-- 載入中 -->
-        <div id="loadingMessage" class="hidden" style="text-align: center; padding: 20px;">
-            <div>⏳ 提交中，請稍候...</div>
+        <div id="loadingMessage" class="message loading hidden">
+            ⏳ 處理中，請稍候...
         </div>
         
         <!-- 成功訊息 -->
-        <div id="successMessage" class="success-message">
-            ✅ 預約成功！我們會盡快與您聯繫。窗口將在3秒後關閉...
+        <div id="successMessage" class="message success hidden">
+            <h3>🎉 預約成功！</h3>
+            <div id="successDetails"></div>
+            <p>我們會盡快與您確認預約</p>
+            <p>窗口將在5秒後關閉...</p>
         </div>
         
         <!-- 錯誤訊息 -->
-        <div id="errorMessage" class="error-message">
-            ❌ 提交失敗，請稍後再試或聯繫客服。
+        <div id="errorMessage" class="message error hidden">
+            ❌ 提交失敗，請稍後再試
         </div>
         
         <!-- 隱藏的表單用於實際提交 -->
@@ -143,131 +460,283 @@
               method="POST" 
               target="hiddenIframe"
               class="hidden">
-            <input type="hidden" name="name" id="hiddenName">
-            <input type="hidden" name="phone" id="hiddenPhone">
-            <input type="hidden" name="email" id="hiddenEmail">
+            <input type="hidden" name="designer" id="hiddenDesigner">
             <input type="hidden" name="date" id="hiddenDate">
             <input type="hidden" name="time" id="hiddenTime">
-            <input type="hidden" name="serviceType" id="hiddenServiceType">
+            <input type="hidden" name="name" id="hiddenName">
+            <input type="hidden" name="phone" id="hiddenPhone">
+            <input type="hidden" name="service" id="hiddenService">
             <input type="hidden" name="notes" id="hiddenNotes">
             <input type="hidden" name="userId" id="hiddenUserId">
-            <input type="hidden" name="source" value="line_liff">
         </form>
         
-        <!-- 隱藏的 iframe 用於接收回應 -->
         <iframe name="hiddenIframe" id="hiddenIframe" class="hidden"></iframe>
     </div>
 
     <script>
-        // LIFF 初始化
-        liff.init({ liffId: '2008164171-NKRDKWv0' })
-            .then(() => {
-                console.log('LIFF 初始化成功');
-                
-                if (!liff.isLoggedIn()) {
-                    liff.login();
-                    return;
-                }
-                
-                // 獲取用戶資料
-                return liff.getProfile();
-            })
-            .then(profile => {
-                if (profile) {
-                    console.log('用戶資料:', profile);
-                    document.getElementById('reservationForm').dataset.userId = profile.userId;
-                }
-            })
-            .catch(err => {
-                console.error('LIFF初始化失敗:', err);
-                showError('初始化失敗，請重新開啟表單');
-            });
-
-        // 提交按鈕點擊事件
-        document.getElementById('submitBtn').addEventListener('click', function() {
-            submitForm();
+        // 當前步驟和選擇的數據
+        let currentStep = 1;
+        let selectedDesigner = '';
+        let selectedDate = '';
+        let selectedTime = '';
+        let selectedService = '';
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            setupEventListeners();
+            setDefaultDate();
         });
-
-        // 表單提交函數
-        function submitForm() {
-            const form = document.getElementById('reservationForm');
+        
+        function initializeApp() {
+            // LIFF 初始化
+            liff.init({ liffId: '2008164171-NKRDKWv0' })
+                .then(() => {
+                    console.log('LIFF 初始化成功');
+                    if (!liff.isLoggedIn()) {
+                        liff.login();
+                        return;
+                    }
+                    return liff.getProfile();
+                })
+                .then(profile => {
+                    if (profile) {
+                        document.getElementById('reservationForm').dataset.userId = profile.userId;
+                    }
+                })
+                .catch(err => {
+                    console.error('LIFF初始化失敗:', err);
+                });
+        }
+        
+        function setupEventListeners() {
+            // 設計師選擇
+            document.querySelectorAll('.designer-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    selectDesigner(this.dataset.designer);
+                });
+            });
             
-            // 驗證表單
-            if (!form.checkValidity()) {
-                form.reportValidity();
+            // 日期選擇
+            document.getElementById('date').addEventListener('change', function() {
+                selectedDate = this.value;
+                if (selectedDesigner && selectedDate) {
+                    loadAvailability(selectedDesigner, selectedDate);
+                }
+            });
+            
+            // 服務項目選擇
+            document.querySelectorAll('.service-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    selectService(this.dataset.service);
+                });
+            });
+            
+            // 導航按鈕
+            document.getElementById('nextBtn1').addEventListener('click', nextToStep2);
+            document.getElementById('backBtn1').addEventListener('click', backToStep1);
+            document.getElementById('nextBtn2').addEventListener('click', nextToStep3);
+            document.getElementById('backBtn2').addEventListener('click', backToStep2);
+            document.getElementById('submitBtn').addEventListener('click', submitReservation);
+        }
+        
+        function setDefaultDate() {
+            const today = new Date();
+            const todayFormatted = today.toISOString().split('T')[0];
+            const dateInput = document.getElementById('date');
+            dateInput.value = todayFormatted;
+            dateInput.min = todayFormatted;
+            selectedDate = todayFormatted;
+        }
+        
+        function selectDesigner(designer) {
+            selectedDesigner = designer;
+            document.querySelectorAll('.designer-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            
+            if (selectedDate) {
+                loadAvailability(designer, selectedDate);
+            }
+        }
+        
+        function selectService(service) {
+            selectedService = service;
+            document.querySelectorAll('.service-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+        }
+        
+        async function loadAvailability(designer, date) {
+            showLoading('載入可用時段中...');
+            
+            try {
+                const response = await fetch(
+                    `https://script.google.com/macros/s/AKfycbzOBtZY1USjqze96tOZwCL88LrIYFfYnr_t6lWEFpD-x0SS92K3Z40QIzAIrp8thxEs/exec?action=getAvailability&designer=${encodeURIComponent(designer)}&date=${date}`
+                );
+                
+                const result = await response.json();
+                
+                if (result.success && result.availableSlots.length > 0) {
+                    displayTimeSlots(result.availableSlots);
+                    document.getElementById('availabilitySection').classList.remove('hidden');
+                    document.getElementById('noAvailability').classList.add('hidden');
+                } else {
+                    document.getElementById('availabilitySection').classList.add('hidden');
+                    document.getElementById('noAvailability').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('載入可用時段失敗:', error);
+                showError('載入可用時段失敗');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        function displayTimeSlots(slots) {
+            const container = document.getElementById('timeSlots');
+            container.innerHTML = '';
+            
+            slots.forEach(slot => {
+                const slotElement = document.createElement('div');
+                slotElement.className = 'time-slot available';
+                slotElement.textContent = slot.start;
+                slotElement.title = `${slot.start} - ${slot.end}`;
+                slotElement.dataset.time = slot.start;
+                
+                slotElement.addEventListener('click', function() {
+                    selectTimeSlot(this.dataset.time);
+                });
+                
+                container.appendChild(slotElement);
+            });
+            
+            document.getElementById('availabilityInfo').textContent = `找到 ${slots.length} 個可用時段`;
+        }
+        
+        function selectTimeSlot(time) {
+            selectedTime = time;
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                slot.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+        }
+        
+        function nextToStep2() {
+            if (!selectedDesigner) {
+                alert('請選擇設計師');
+                return;
+            }
+            if (!selectedTime) {
+                alert('請選擇預約時段');
                 return;
             }
             
-            // 顯示載入中，隱藏主表單
-            document.getElementById('mainForm').style.display = 'none';
-            document.getElementById('loadingMessage').classList.remove('hidden');
-            document.getElementById('successMessage').style.display = 'none';
-            document.getElementById('errorMessage').style.display = 'none';
+            currentStep = 2;
+            showStep(2);
+        }
+        
+        function backToStep1() {
+            currentStep = 1;
+            showStep(1);
+        }
+        
+        function nextToStep3() {
+            // 驗證表單
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value;
             
-            // 收集表單資料
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData);
+            if (!name || !phone) {
+                alert('請填寫姓名和電話');
+                return;
+            }
+            if (!selectedService) {
+                alert('請選擇服務項目');
+                return;
+            }
+            
+            // 顯示確認資訊
+            document.getElementById('confirmDesigner').textContent = selectedDesigner;
+            document.getElementById('confirmDateTime').textContent = `${selectedDate} ${selectedTime}`;
+            document.getElementById('confirmName').textContent = name;
+            document.getElementById('confirmPhone').textContent = phone;
+            document.getElementById('confirmService').textContent = selectedService;
+            document.getElementById('confirmNotes').textContent = document.getElementById('notes').value || '無';
+            
+            currentStep = 3;
+            showStep(3);
+        }
+        
+        function backToStep2() {
+            currentStep = 2;
+            showStep(2);
+        }
+        
+        function showStep(step) {
+            document.querySelectorAll('[id^="step"]').forEach(element => {
+                element.classList.add('hidden');
+            });
+            document.getElementById(`step${step}`).classList.remove('hidden');
+        }
+        
+        function submitReservation() {
+            showLoading('提交預約中...');
             
             // 填充隱藏表單
-            document.getElementById('hiddenName').value = data.name;
-            document.getElementById('hiddenPhone').value = data.phone;
-            document.getElementById('hiddenEmail').value = data.email || '';
-            document.getElementById('hiddenDate').value = data.date;
-            document.getElementById('hiddenTime').value = data.time;
-            document.getElementById('hiddenServiceType').value = data.serviceType;
-            document.getElementById('hiddenNotes').value = data.notes || '';
-            document.getElementById('hiddenUserId').value = form.dataset.userId || 'unknown';
+            document.getElementById('hiddenDesigner').value = selectedDesigner;
+            document.getElementById('hiddenDate').value = selectedDate;
+            document.getElementById('hiddenTime').value = selectedTime;
+            document.getElementById('hiddenName').value = document.getElementById('name').value;
+            document.getElementById('hiddenPhone').value = document.getElementById('phone').value;
+            document.getElementById('hiddenService').value = selectedService;
+            document.getElementById('hiddenNotes').value = document.getElementById('notes').value;
+            document.getElementById('hiddenUserId').value = document.getElementById('reservationForm').dataset.userId || 'unknown';
             
-            // 設置 iframe 載入完成後的回調
-            document.getElementById('hiddenIframe').onload = function() {
-                // 表單提交完成，顯示成功訊息
-                document.getElementById('loadingMessage').classList.add('hidden');
-                document.getElementById('successMessage').style.display = 'block';
+            // 設置成功訊息
+            const successDetails = `
+                <div style="text-align: left; margin: 15px 0;">
+                    <div><strong>設計師：</strong>${selectedDesigner}</div>
+                    <div><strong>預約時間：</strong>${selectedDate} ${selectedTime}</div>
+                    <div><strong>姓名：</strong>${document.getElementById('name').value}</div>
+                    <div><strong>電話：</strong>${document.getElementById('phone').value}</div>
+                    <div><strong>服務項目：</strong>${selectedService}</div>
+                </div>
+            `;
+            document.getElementById('successDetails').innerHTML = successDetails;
+            
+            // 提交表單
+            document.getElementById('hiddenForm').submit();
+            
+            // 顯示成功訊息
+            setTimeout(() => {
+                hideLoading();
+                document.getElementById('step3').classList.add('hidden');
+                document.getElementById('successMessage').classList.remove('hidden');
                 
-                // 3秒後關閉視窗
+                // 5秒後關閉
                 setTimeout(() => {
                     if (liff.isInClient()) {
                         liff.closeWindow();
                     }
-                }, 3000);
-            };
-            
-            // 提交隱藏表單
-            document.getElementById('hiddenForm').submit();
-            
-            // 設置超時處理（以防 iframe 載入失敗）
-            setTimeout(() => {
-                if (document.getElementById('successMessage').style.display !== 'block') {
-                    // 如果超過5秒還沒有顯示成功訊息，認為提交成功
-                    document.getElementById('loadingMessage').classList.add('hidden');
-                    document.getElementById('successMessage').style.display = 'block';
-                    
-                    setTimeout(() => {
-                        if (liff.isInClient()) {
-                            liff.closeWindow();
-                        }
-                    }, 3000);
-                }
-            }, 5000);
+                }, 5000);
+            }, 2000);
         }
         
-        // 顯示錯誤訊息
-        function showError(message) {
-            document.getElementById('errorMessage').textContent = `❌ ${message}`;
-            document.getElementById('errorMessage').style.display = 'block';
+        function showLoading(message) {
+            document.getElementById('loadingMessage').textContent = message;
+            document.getElementById('loadingMessage').classList.remove('hidden');
+        }
+        
+        function hideLoading() {
             document.getElementById('loadingMessage').classList.add('hidden');
-            document.getElementById('mainForm').style.display = 'block';
         }
         
-        // 設置最小日期為今天
-        const today = new Date();
-        const todayFormatted = today.toISOString().split('T')[0];
-        document.getElementById('date').value = todayFormatted;
-        document.getElementById('date').min = todayFormatted;
-        
-        // 設置預設時間為下一整點
-        const nextHour = today.getHours() + 1;
-        document.getElementById('time').value = `${nextHour.toString().padStart(2, '0')}:00`;
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorMessage').classList.remove('hidden');
+        }
     </script>
 </body>
 </html>
