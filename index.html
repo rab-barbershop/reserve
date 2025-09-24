@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"></script>
     <style>
-        /* 您的CSS樣式保持不變 */
         :root {
             --primary-color: #0b420b;
             --secondary-color: #00a308;
@@ -132,35 +131,6 @@
             color: #666;
         }
         
-        .time-slots {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-top: 10px;
-        }
-        
-        .time-slot {
-            padding: 10px 5px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            text-align: center;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.3s;
-        }
-        
-        .time-slot.selected {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-        
-        .time-slot.booked {
-            background: #f0f0f0;
-            color: #999;
-            cursor: not-allowed;
-        }
-        
         .service-options {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -265,6 +235,11 @@
             font-size: 14px;
             color: #666;
             margin-top: 10px;
+        }
+        
+        .back-button {
+            background: #666 !important;
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -388,10 +363,8 @@
                 </div>
             </div>
             
-            <div style="display: flex; gap: 10px;">
-                <button type="button" id="backBtn1" class="button" style="background: #666;">上一步</button>
-                <button type="button" id="nextBtn2" class="button">下一步：確認預約</button>
-            </div>
+            <button type="button" id="backBtn1" class="button back-button">上一步</button>
+            <button type="button" id="nextBtn2" class="button">下一步：確認預約</button>
         </div>
         
         <!-- 步驟3: 確認預約 -->
@@ -426,10 +399,8 @@
                 </div>
             </div>
             
-            <div style="display: flex; gap: 10px;">
-                <button type="button" id="backBtn2" class="button" style="background: #666;">上一步</button>
-                <button type="button" id="submitBtn" class="button">確認提交預約</button>
-            </div>
+            <button type="button" id="backBtn2" class="button back-button">上一步</button>
+            <button type="button" id="submitBtn" class="button">確認提交預約</button>
         </div>
         
         <!-- 載入中 -->
@@ -443,12 +414,6 @@
             <div id="successDetails"></div>
             <p>我們會盡快與您確認預約</p>
             <div class="countdown" id="countdown">窗口將在5秒後關閉...</div>
-        <!-- 要刪掉訊息 -->
-            <button onclick="showUserId()" style="padding: 10px; background: #4CAF50; color: white; border: none; border-radius: 5px;">
-            顯示我的用戶ID（測試用）
-            </button>
-            <div id="userIdDisplay" style="margin-top: 10px; font-size: 12px; word-break: break-all;"></div>
-        <!-- 要刪掉訊息 -->
         </div>
         
         <!-- 錯誤訊息 -->
@@ -497,6 +462,8 @@
             liff.init({ liffId: '2008164171-NKRDKWv0' })
                 .then(() => {
                     console.log('LIFF 初始化成功');
+                    
+                    // 檢查是否已登入
                     if (!liff.isLoggedIn()) {
                         liff.login();
                         return;
@@ -510,15 +477,17 @@
                         console.log('用戶ID:', profile.userId);
                         document.getElementById('hiddenUserId').value = profile.userId;
                         
-                        // 嘗試獲取 replyToken（LIFF v2 的方式）
-                        // 注意：replyToken 只有在特定情況下才能獲取
+                        // 從 URL 參數獲取 replyToken
                         const urlParams = new URLSearchParams(window.location.search);
-                        const replyToken = urlParams.get('replyToken') || 
-                                        liff.getContext()?.replyToken || 
-                                        'unknown';
+                        const replyToken = urlParams.get('replyToken');
                         
-                        document.getElementById('hiddenReplyToken').value = replyToken;
-                        console.log('Reply Token:', replyToken);
+                        if (replyToken) {
+                            console.log('從URL獲取replyToken:', replyToken);
+                            document.getElementById('hiddenReplyToken').value = replyToken;
+                        } else {
+                            console.warn('未找到replyToken，使用unknown');
+                            document.getElementById('hiddenReplyToken').value = 'unknown';
+                        }
                     }
                 })
                 .catch(err => {
@@ -527,31 +496,6 @@
                     document.getElementById('hiddenReplyToken').value = 'unknown';
                 });
         }
-
-
-        // function initializeApp() {
-        //     liff.init({ liffId: '2008164171-NKRDKWv0' })
-        //         .then(() => {
-        //             console.log('LIFF 初始化成功');
-        //             if (!liff.isLoggedIn()) {
-        //                 liff.login();
-        //                 return;
-        //             }
-        //             return liff.getProfile();
-        //         })
-        //         .then(profile => {
-        //             if (profile) {
-        //                 console.log('用戶ID:', profile.userId);
-        //                 document.getElementById('hiddenUserId').value = profile.userId;
-        //             } else {
-        //                 document.getElementById('hiddenUserId').value = 'unknown';
-        //             }
-        //         })
-        //         .catch(err => {
-        //             console.error('LIFF初始化失敗:', err);
-        //             document.getElementById('hiddenUserId').value = 'unknown';
-        //         });
-        // }
         
         function setupEventListeners() {
             // 設計師選擇
@@ -568,6 +512,16 @@
                 });
             });
             
+            // 日期選擇
+            document.getElementById('date').addEventListener('change', function() {
+                selectedDate = this.value;
+            });
+            
+            // 時間選擇
+            document.getElementById('time').addEventListener('change', function() {
+                selectedTime = this.value;
+            });
+            
             // 導航按鈕
             document.getElementById('nextBtn1').addEventListener('click', nextToStep2);
             document.getElementById('backBtn1').addEventListener('click', backToStep1);
@@ -577,6 +531,8 @@
             
             // 監聽 iframe 回傳訊息
             window.addEventListener('message', function(event) {
+                console.log('收到訊息:', event.data);
+                
                 if (event.data.type === 'reservation_success') {
                     console.log('預約成功:', event.data);
                     showSuccess();
@@ -584,6 +540,11 @@
                     console.error('預約失敗:', event.data.error);
                     showError('預約失敗：' + event.data.error);
                 }
+            });
+            
+            // 監聽表單提交完成
+            document.getElementById('hiddenIframe').addEventListener('load', function() {
+                console.log('表單提交完成');
             });
         }
         
@@ -663,18 +624,25 @@
         }
         
         function nextToStep3() {
-            const name = document.getElementById('name').value;
-            const phone = document.getElementById('phone').value;
+            const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
             
-            if (!name || !phone) {
-                alert('請填寫姓名和電話');
+            if (!name) {
+                alert('請填寫姓名');
                 return;
             }
+            
+            if (!phone) {
+                alert('請填寫電話');
+                return;
+            }
+            
             if (!selectedService) {
                 alert('請選擇服務項目');
                 return;
             }
             
+            // 更新確認頁面的資訊
             document.getElementById('confirmDesigner').textContent = selectedDesigner;
             document.getElementById('confirmDateTime').textContent = `${selectedDate} ${selectedTime}`;
             document.getElementById('confirmName').textContent = name;
@@ -696,58 +664,78 @@
                 element.classList.add('hidden');
             });
             document.getElementById(`step${step}`).classList.remove('hidden');
+            
+            // 隱藏所有訊息
             document.querySelectorAll('.message').forEach(msg => {
                 msg.classList.add('hidden');
             });
         }
         
         function submitReservation() {
+            const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            
+            if (!name || !phone || !selectedDesigner || !selectedDate || !selectedTime || !selectedService) {
+                showError('請填寫完整的預約資訊');
+                return;
+            }
+            
             showLoading('提交預約中...');
-            
-            // 獲取當前用戶資料
-            const userId = document.getElementById('hiddenUserId').value || 'unknown';
-            const replyToken = document.getElementById('hiddenReplyToken').value || 'unknown';
-            
-            console.log('提交預約，用戶ID:', userId);
-            console.log('Reply Token:', replyToken);
             
             // 填充隱藏表單
             document.getElementById('hiddenDesigner').value = selectedDesigner;
             document.getElementById('hiddenDate').value = selectedDate;
             document.getElementById('hiddenTime').value = selectedTime;
-            document.getElementById('hiddenName').value = document.getElementById('name').value;
-            document.getElementById('hiddenPhone').value = document.getElementById('phone').value;
+            document.getElementById('hiddenName').value = name;
+            document.getElementById('hiddenPhone').value = phone;
             document.getElementById('hiddenService').value = selectedService;
-            document.getElementById('hiddenNotes').value = document.getElementById('notes').value;
-            document.getElementById('hiddenUserId').value = userId;
-            document.getElementById('hiddenReplyToken').value = replyToken; // 設置 replyToken
+            document.getElementById('hiddenNotes').value = document.getElementById('notes').value || '';
             
+            console.log('提交的資料:', {
+                designer: selectedDesigner,
+                date: selectedDate,
+                time: selectedTime,
+                name: name,
+                phone: phone,
+                service: selectedService,
+                userId: document.getElementById('hiddenUserId').value,
+                replyToken: document.getElementById('hiddenReplyToken').value
+            });
+            
+            // 設置成功訊息內容
             const successDetails = `
                 <div style="text-align: left; margin: 15px 0;">
                     <div><strong>設計師：</strong>${selectedDesigner}</div>
                     <div><strong>預約時間：</strong>${selectedDate} ${selectedTime}</div>
-                    <div><strong>姓名：</strong>${document.getElementById('name').value}</div>
-                    <div><strong>電話：</strong>${document.getElementById('phone').value}</div>
+                    <div><strong>姓名：</strong>${name}</div>
+                    <div><strong>電話：</strong>${phone}</div>
                     <div><strong>服務項目：</strong>${selectedService}</div>
                 </div>
             `;
             document.getElementById('successDetails').innerHTML = successDetails;
             
+            // 提交表單
             document.getElementById('hiddenForm').submit();
-            
-            setTimeout(() => {
-                if (document.getElementById('successMessage').classList.contains('hidden')) {
-                    showSuccess();
-                }
-            }, 3000);
+        }
+        
+        function showLoading(message) {
+            document.getElementById('loadingMessage').textContent = message;
+            document.getElementById('loadingMessage').classList.remove('hidden');
         }
         
         function showSuccess() {
             document.getElementById('loadingMessage').classList.add('hidden');
             document.getElementById('successMessage').classList.remove('hidden');
-            document.getElementById('step3').classList.add('hidden');
+            document.querySelectorAll('[id^="step"]').forEach(element => {
+                element.classList.add('hidden');
+            });
             
             startCountdown(5);
+        }
+        
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorMessage').classList.remove('hidden');
         }
         
         function startCountdown(seconds) {
@@ -765,22 +753,6 @@
                     }
                 }
             }, 1000);
-        }
-        
-        function showLoading(message) {
-            document.getElementById('loadingMessage').textContent = message;
-            document.getElementById('loadingMessage').classList.remove('hidden');
-        }
-        
-        function showError(message) {
-            document.getElementById('errorMessage').textContent = message;
-            document.getElementById('errorMessage').classList.remove('hidden');
-        }
-        //要刪掉
-        function showUserId() {
-        const userId = document.getElementById('hiddenUserId').value;
-        document.getElementById('userIdDisplay').innerHTML = 
-            '您的用戶ID: <strong>' + userId + '</strong>';
         }
     </script>
 </body>
