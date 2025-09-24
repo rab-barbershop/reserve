@@ -443,12 +443,6 @@
             <div id="successDetails"></div>
             <p>我們會盡快與您確認預約</p>
             <div class="countdown" id="countdown">窗口將在5秒後關閉...</div>
-        <!-- 要刪掉訊息 -->
-            <button onclick="showUserId()" style="padding: 10px; background: #4CAF50; color: white; border: none; border-radius: 5px;">
-            顯示我的用戶ID（測試用）
-            </button>
-            <div id="userIdDisplay" style="margin-top: 10px; font-size: 12px; word-break: break-all;"></div>
-        <!-- 要刪掉訊息 -->
         </div>
         
         <!-- 錯誤訊息 -->
@@ -732,12 +726,6 @@
         function showError(message) {
             document.getElementById('errorMessage').textContent = message;
             document.getElementById('errorMessage').classList.remove('hidden');
-        }
-        //要刪掉
-        function showUserId() {
-        const userId = document.getElementById('hiddenUserId').value;
-        document.getElementById('userIdDisplay').innerHTML = 
-            '您的用戶ID: <strong>' + userId + '</strong>';
         }
     </script>
 </body>
