@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -7,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"></script>
     <style>
+        /* 您的CSS樣式保持不變 */
         :root {
             --primary-color: #0b420b;
             --secondary-color: #00a308;
@@ -209,7 +209,6 @@
             border-radius: 10px;
             margin: 15px 0;
             text-align: center;
-            display: none;
         }
         
         .success {
@@ -261,6 +260,12 @@
             margin-top: 10px;
             text-align: center;
         }
+        
+        .countdown {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -276,22 +281,22 @@
                 <div class="section-title">👨‍🎨 選擇設計師</div>
                 <div class="designer-grid">
                     <div class="designer-card" data-designer="正宗 店長">
-                        <div></div>
+                        <div>💇‍♂️</div>
                         <div class="designer-name">正宗 店長</div>
                         <div class="designer-specialty">男士理髮.韓系燙髮.髮型修正.漸層推剪.韓系C字彎燙.手棒燙⋯⋯</div>
                     </div>
                     <div class="designer-card" data-designer="Liva 設計師">
-                        <div></div>
+                        <div>💇‍♀️</div>
                         <div class="designer-name">Liva 設計師</div>
                         <div class="designer-specialty">男士理髮.女仕髮型.油頭.男士紋理燙.女神雲朵燙⋯⋯</div>
                     </div>
                     <div class="designer-card" data-designer="Mei 設計師">
-                        <div></div>
+                        <div>💇‍♀️</div>
                         <div class="designer-name">Mei 設計師</div>
                         <div class="designer-specialty">女仕髮型.女神雲朵燙.韓系霧感棕色.染髮</div>
                     </div>
                     <div class="designer-card" data-designer="頭皮養護師">
-                        <div></div>
+                        <div>💆‍♂️</div>
                         <div class="designer-name">頭皮養護師</div>
                         <div class="designer-specialty">頭皮舒壓SPA（含肩頸按摩）</div>
                     </div>
@@ -437,7 +442,7 @@
             <h3>🎉 預約成功！</h3>
             <div id="successDetails"></div>
             <p>我們會盡快與您確認預約</p>
-            <p>窗口將在5秒後關閉...</p>
+            <div class="countdown" id="countdown">窗口將在5秒後關閉...</div>
         </div>
         
         <!-- 錯誤訊息 -->
@@ -471,6 +476,7 @@
         let selectedDate = '';
         let selectedTime = '';
         let selectedService = '';
+        let countdownTimer = null;
         
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
@@ -481,7 +487,6 @@
         });
         
         function initializeApp() {
-            // LIFF 初始化
             liff.init({ liffId: '2008164171-NKRDKWv0' })
                 .then(() => {
                     console.log('LIFF 初始化成功');
@@ -493,18 +498,14 @@
                 })
                 .then(profile => {
                     if (profile) {
-                        document.getElementById('hiddenForm').dataset.userId = profile.userId;
+                        console.log('用戶ID:', profile.userId);
+                        document.getElementById('hiddenUserId').value = profile.userId;
+                    } else {
+                        document.getElementById('hiddenUserId').value = 'unknown';
                     }
                 })
                 .catch(err => {
                     console.error('LIFF初始化失敗:', err);
-                });
-                liff.getProfile()
-                .then(profile => {
-                    document.getElementById('hiddenUserId').value = profile.userId;
-                })
-                .catch(err => {
-                    console.log('無法獲取用戶資料，但仍可預約');
                     document.getElementById('hiddenUserId').value = 'unknown';
                 });
         }
@@ -530,6 +531,17 @@
             document.getElementById('nextBtn2').addEventListener('click', nextToStep3);
             document.getElementById('backBtn2').addEventListener('click', backToStep2);
             document.getElementById('submitBtn').addEventListener('click', submitReservation);
+            
+            // 監聽 iframe 回傳訊息
+            window.addEventListener('message', function(event) {
+                if (event.data.type === 'reservation_success') {
+                    console.log('預約成功:', event.data);
+                    showSuccess();
+                } else if (event.data.type === 'reservation_error') {
+                    console.error('預約失敗:', event.data.error);
+                    showError('預約失敗：' + event.data.error);
+                }
+            });
         }
         
         function setDefaultDate() {
@@ -546,7 +558,6 @@
             const currentHour = now.getHours();
             const currentMinute = now.getMinutes();
             
-            // 設置預設時間為下一個整點或半點
             let defaultTime = '';
             if (currentMinute < 30) {
                 defaultTime = `${currentHour.toString().padStart(2, '0')}:30`;
@@ -554,15 +565,13 @@
                 defaultTime = `${(currentHour + 1).toString().padStart(2, '0')}:00`;
             }
             
-            // 確保時間在營業時間內
-            if (currentHour < 9) defaultTime = '09:00';
-            if (currentHour >= 18) {
-                // 如果現在是晚上，設置明天第一個時段
+            if (currentHour < 11) defaultTime = '11:00';
+            if (currentHour >= 20) {
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 document.getElementById('date').value = tomorrow.toISOString().split('T')[0];
                 selectedDate = tomorrow.toISOString().split('T')[0];
-                defaultTime = '09:00';
+                defaultTime = '11:00';
             }
             
             document.getElementById('time').value = defaultTime;
@@ -594,18 +603,13 @@
             const date = document.getElementById('date').value;
             const time = document.getElementById('time').value;
             
-            if (!date) {
-                alert('請選擇預約日期');
-                return;
-            }
-            if (!time) {
-                alert('請選擇預約時間');
+            if (!date || !time) {
+                alert('請選擇預約日期和時間');
                 return;
             }
             
             selectedDate = date;
             selectedTime = time;
-            
             currentStep = 2;
             showStep(2);
         }
@@ -616,7 +620,6 @@
         }
         
         function nextToStep3() {
-            // 驗證表單
             const name = document.getElementById('name').value;
             const phone = document.getElementById('phone').value;
             
@@ -629,7 +632,6 @@
                 return;
             }
             
-            // 顯示確認資訊
             document.getElementById('confirmDesigner').textContent = selectedDesigner;
             document.getElementById('confirmDateTime').textContent = `${selectedDate} ${selectedTime}`;
             document.getElementById('confirmName').textContent = name;
@@ -651,8 +653,6 @@
                 element.classList.add('hidden');
             });
             document.getElementById(`step${step}`).classList.remove('hidden');
-            
-            // 隱藏所有訊息
             document.querySelectorAll('.message').forEach(msg => {
                 msg.classList.add('hidden');
             });
@@ -661,11 +661,9 @@
         function submitReservation() {
             showLoading('提交預約中...');
             
-            // 獲取當前 userId
             const userId = document.getElementById('hiddenUserId').value || 'unknown';
             console.log('提交預約，用戶ID:', userId);
             
-            // 填充隱藏表單
             document.getElementById('hiddenDesigner').value = selectedDesigner;
             document.getElementById('hiddenDate').value = selectedDate;
             document.getElementById('hiddenTime').value = selectedTime;
@@ -675,53 +673,49 @@
             document.getElementById('hiddenNotes').value = document.getElementById('notes').value;
             document.getElementById('hiddenUserId').value = userId;
             
-            // 設置成功訊息內容
             const successDetails = `
                 <div style="text-align: left; margin: 15px 0;">
-                <div><strong>設計師：</strong>${selectedDesigner}</div>
-                <div><strong>預約時間：</strong>${selectedDate} ${selectedTime}</div>
-                <div><strong>姓名：</strong>${document.getElementById('name').value}</div>
-                <div><strong>電話：</strong>${document.getElementById('phone').value}</div>
-                <div><strong>服務項目：</strong>${selectedService}</div>
+                    <div><strong>設計師：</strong>${selectedDesigner}</div>
+                    <div><strong>預約時間：</strong>${selectedDate} ${selectedTime}</div>
+                    <div><strong>姓名：</strong>${document.getElementById('name').value}</div>
+                    <div><strong>電話：</strong>${document.getElementById('phone').value}</div>
+                    <div><strong>服務項目：</strong>${selectedService}</div>
                 </div>
             `;
             document.getElementById('successDetails').innerHTML = successDetails;
             
-            // 新增：監聽 iframe 回傳的訊息
-            window.addEventListener('message', function(event) {
-                if (event.data.type === 'reservation_success') {
-                console.log('預約成功:', event.data);
-                showSuccess();
-                } else if (event.data.type === 'reservation_error') {
-                console.error('預約失敗:', event.data.error);
-                showError('預約失敗：' + event.data.error);
-                }
-            });
-            
-            // 提交隱藏表單
             document.getElementById('hiddenForm').submit();
             
-            // 設置超時處理（以防 iframe 載入失敗）
             setTimeout(() => {
-                if (!document.getElementById('successMessage').classList.contains('hidden')) {
-                console.log('表單提交超時，顯示成功訊息');
-                showSuccess();
+                if (document.getElementById('successMessage').classList.contains('hidden')) {
+                    showSuccess();
                 }
-            }, 5000);
+            }, 3000);
         }
-
+        
         function showSuccess() {
             document.getElementById('loadingMessage').classList.add('hidden');
             document.getElementById('successMessage').classList.remove('hidden');
             document.getElementById('step3').classList.add('hidden');
             
-            // 5秒後關閉視窗
-            setTimeout(() => {
-                document.write('5秒後關閉視窗');
-                if (liff.isInClient()) {
-                    liff.closeWindow();
+            startCountdown(5);
+        }
+        
+        function startCountdown(seconds) {
+            let countdown = seconds;
+            const countdownElement = document.getElementById('countdown');
+            
+            countdownTimer = setInterval(() => {
+                countdownElement.textContent = `窗口將在${countdown}秒後關閉...`;
+                countdown--;
+                
+                if (countdown < 0) {
+                    clearInterval(countdownTimer);
+                    if (liff.isInClient()) {
+                        liff.closeWindow();
+                    }
                 }
-            }, 5000);
+            }, 1000);
         }
         
         function showLoading(message) {
@@ -732,17 +726,6 @@
         function showError(message) {
             document.getElementById('errorMessage').textContent = message;
             document.getElementById('errorMessage').classList.remove('hidden');
-        }
-        
-        // 工具函數：格式化日期
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('zh-TW', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                weekday: 'long'
-            });
         }
     </script>
 </body>
