@@ -690,6 +690,7 @@
             });
         }
         
+        // 統一的提交函數 - 修正版
         async function submitReservation() {
             const name = document.getElementById('name').value.trim();
             const phone = document.getElementById('phone').value.trim();
@@ -699,37 +700,22 @@
                 return;
             }
             
-            // 檢查 replyToken
-            if (!replyToken || replyToken === 'unknown') {
-                if (!confirm('警告：未檢測到有效的 replyToken！這可能會影響訊息回覆功能。是否繼續提交？')) {
-                    return;
-                }
-            }
-            
             showLoading('提交預約中...');
             
-            // 準備提交資料
-            const formData = new FormData();
-            formData.append('designer', selectedDesigner);
-            formData.append('date', selectedDate);
-            formData.append('time', selectedTime);
-            formData.append('name', name);
-            formData.append('phone', phone);
-            formData.append('service', selectedService);
-            formData.append('notes', document.getElementById('notes').value || '');
-            formData.append('userId', userId);
-            formData.append('replyToken', replyToken);
-            
-            console.log('提交的資料:', {
+            // 準備預約資料
+            const reservationData = {
                 designer: selectedDesigner,
                 date: selectedDate,
                 time: selectedTime,
                 name: name,
                 phone: phone,
                 service: selectedService,
+                notes: document.getElementById('notes').value || '',
                 userId: userId,
                 replyToken: replyToken
-            });
+            };
+            
+            console.log('提交的資料:', reservationData);
             
             // 設置成功訊息內容
             const successDetails = `
@@ -748,25 +734,63 @@
             document.getElementById('successDetails').innerHTML = successDetails;
             
             try {
-                // 使用 Fetch API 提交
-                const response = await fetchWithTimeout(
-                    'https://script.google.com/macros/s/AKfycbwkbcDc8axPYVL2gXttGeyHroNZGTFUWjpDeuceiBjoxYz86DG9wrMbJgIVq1aT2EDGjQ/exec', 
-                    {
-                        method: 'POST',
-                        body: formData,
-                        mode: 'no-cors'
-                    },
-                    10000 // 10秒超時
-                );
+                // 方法1: 使用 LINE liff.sendMessages() 發送訊息
+                if (liff.isInClient()) {
+                    await sendViaLINEMessages(reservationData);
+                } 
+                // 方法2: 使用傳統表單提交
+                else {
+                    await sendViaForm(reservationData);
+                }
                 
-                console.log('請求已發送，顯示成功訊息');
                 showSuccess();
                 
             } catch (error) {
                 console.error('提交錯誤:', error);
-                // 即使出錯也顯示成功（因為資料可能已經送達）
-                showSuccess();
+                showError('提交失敗，請稍後再試: ' + error.message);
             }
+        }
+
+        // 方法1: 透過 LINE 訊息發送
+        async function sendViaLINEMessages(reservationData) {
+            return new Promise((resolve, reject) => {
+                liff.sendMessages([{
+                    type: 'text',
+                    text: `💇‍♀️ 新的預約申請\n\n姓名: ${reservationData.name}\n電話: ${reservationData.phone}\n設計師: ${reservationData.designer}\n時間: ${reservationData.date} ${reservationData.time}\n服務: ${reservationData.service}`
+                }]).then(() => {
+                    console.log('LIFF 訊息發送成功');
+                    // 同時也提交到後端保存
+                    return sendViaForm(reservationData);
+                }).then(() => {
+                    resolve();
+                }).catch(error => {
+                    console.error('發送訊息失敗:', error);
+                    reject(error);
+                });
+            });
+        }
+
+        // 方法2: 透過表單提交到 Google Apps Script
+        async function sendViaForm(reservationData) {
+            const formData = new FormData();
+            
+            // 添加所有表單數據
+            for (const key in reservationData) {
+                formData.append(key, reservationData[key]);
+            }
+            
+            const response = await fetchWithTimeout(
+                'https://script.google.com/macros/s/AKfycbwkbcDc8axPYVL2gXttGeyHroNZGTFUWjpDeuceiBjoxYz86DG9wrMbJgIVq1aT2EDGjQ/exec', 
+                {
+                    method: 'POST',
+                    body: formData,
+                    mode: 'no-cors'
+                },
+                10000 // 10秒超時
+            );
+            
+            console.log('表單提交完成');
+            return response;
         }
         
         // 帶超時的 fetch 函數
@@ -849,82 +873,6 @@
                 debugTokenInfo();
             }
         }
-        
-
-        async function submitReservation() {
-        const name = document.getElementById('name').value.trim();
-        const phone = document.getElementById('phone').value.trim();
-        
-        if (!name || !phone || !selectedDesigner || !selectedDate || !selectedTime || !selectedService) {
-            showError('請填寫完整的預約資訊');
-            return;
-        }
-        
-        showLoading('提交預約中...');
-        
-        // 準備預約資料
-        const reservationData = {
-            designer: selectedDesigner,
-            date: selectedDate,
-            time: selectedTime,
-            name: name,
-            phone: phone,
-            service: selectedService,
-            notes: document.getElementById('notes').value || '',
-            userId: userId
-        };
-        
-        try {
-            // 方法1: 使用 LINE liff.sendMessages() 發送訊息
-            if (liff.isInClient()) {
-            await sendViaLINEMessages(reservationData);
-            } 
-            // 方法2: 使用 postback 方式
-            else {
-            await sendViaPostback(reservationData);
-            }
-            
-            showSuccess();
-            
-        } catch (error) {
-            console.error('提交錯誤:', error);
-            showError('提交失敗，請稍後再試');
-        }
-        }
-
-        // 方法1: 透過 LINE 訊息發送
-        async function sendViaLINEMessages(reservationData) {
-        return new Promise((resolve, reject) => {
-            liff.sendMessages([{
-            type: 'text',
-            text: `💇‍♀️ 新的預約申請\n\n姓名: ${reservationData.name}\n電話: ${reservationData.phone}\n設計師: ${reservationData.designer}\n時間: ${reservationData.date} ${reservationData.time}\n服務: ${reservationData.service}`
-            }]).then(() => {
-            console.log('訊息發送成功');
-            resolve();
-            }).catch(error => {
-            console.error('發送訊息失敗:', error);
-            reject(error);
-            });
-        });
-        }
-
-        // 方法2: 透過 postback 發送（需要設定 LINE Bot 的 Webhook）
-        async function sendViaPostback(reservationData) {
-        const formData = new FormData();
-        formData.append('reservation', JSON.stringify(reservationData));
-        
-        const response = await fetch('https://script.google.com/macros/s/AKfycbz4DwTRuLbyio1n0Bo6X91bmZlMe6E3dAY9OxJDU-YEOH0mPDcnijmoeFF-3DBcZSKG/exec', {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (!response.ok) {
-            throw new Error('網路請求失敗');
-        }
-        
-        return await response.json();
-        }
-
     </script>
 </body>
 </html>
