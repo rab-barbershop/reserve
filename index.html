@@ -241,6 +241,36 @@
             background: #666 !important;
             margin-bottom: 10px;
         }
+        
+        .debug-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #007bff;
+        }
+        
+        .debug-title {
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .debug-info {
+            font-size: 12px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            word-break: break-all;
+        }
+        
+        .test-button {
+            background: #6c757d !important;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -248,6 +278,15 @@
         <div class="header">
             <h1>R.A.B專業男士沙龍預約幫手</h1>
             <div class="subtitle">選擇您喜愛的設計師與預約時段</div>
+        </div>
+        
+        <!-- 除錯區域 -->
+        <div class="debug-section">
+            <div class="debug-title">🔧 除錯資訊（開發用）</div>
+            <button id="testTokenBtn" class="button test-button">測試 ReplyToken 獲取</button>
+            <div id="tokenInfo" class="debug-info hidden">
+                <!-- 除錯資訊將在這裡顯示 -->
+            </div>
         </div>
         
         <!-- 步驟1: 選擇設計師和日期 -->
@@ -439,6 +478,7 @@
             setupEventListeners();
             setDefaultDate();
             setDefaultTime();
+            debugTokenInfo(); // 頁面載入時顯示除錯資訊
         });
         
         function initializeApp() {
@@ -470,6 +510,9 @@
                             console.warn('未找到replyToken，使用unknown');
                             replyToken = 'unknown';
                         }
+                        
+                        // 更新除錯資訊
+                        updateDebugInfo();
                     }
                 })
                 .catch(err => {
@@ -479,6 +522,9 @@
                     // 從 URL 參數獲取 replyToken
                     const urlParams = new URLSearchParams(window.location.search);
                     replyToken = urlParams.get('replyToken') || 'unknown';
+                    
+                    // 更新除錯資訊
+                    updateDebugInfo();
                 });
         }
         
@@ -513,6 +559,12 @@
             document.getElementById('nextBtn2').addEventListener('click', nextToStep3);
             document.getElementById('backBtn2').addEventListener('click', backToStep2);
             document.getElementById('submitBtn').addEventListener('click', submitReservation);
+            
+            // 測試按鈕
+            document.getElementById('testTokenBtn').addEventListener('click', function() {
+                debugTokenInfo();
+                document.getElementById('tokenInfo').classList.remove('hidden');
+            });
         }
         
         function setDefaultDate() {
@@ -647,6 +699,13 @@
                 return;
             }
             
+            // 檢查 replyToken
+            if (!replyToken || replyToken === 'unknown') {
+                if (!confirm('警告：未檢測到有效的 replyToken！這可能會影響訊息回覆功能。是否繼續提交？')) {
+                    return;
+                }
+            }
+            
             showLoading('提交預約中...');
             
             // 準備提交資料
@@ -680,14 +739,16 @@
                     <div><strong>姓名：</strong>${name}</div>
                     <div><strong>電話：</strong>${phone}</div>
                     <div><strong>服務項目：</strong>${selectedService}</div>
-                    <div><strong>用戶ID：</strong>${userId}</div>
-                    <div><strong>Reply Token：</strong>${replyToken}</div>
+                    <div style="margin-top: 15px; padding: 10px; background: #e9f7ef; border-radius: 5px;">
+                        <div><strong>用戶ID：</strong>${userId}</div>
+                        <div><strong>Reply Token：</strong>${replyToken}</div>
+                    </div>
                 </div>
             `;
             document.getElementById('successDetails').innerHTML = successDetails;
             
             try {
-                // 使用 Fetch API 替代 iframe 提交
+                // 使用 Fetch API 提交
                 const response = await fetchWithTimeout(
                     'https://script.google.com/macros/s/AKfycbwkbcDc8axPYVL2gXttGeyHroNZGTFUWjpDeuceiBjoxYz86DG9wrMbJgIVq1aT2EDGjQ/exec', 
                     {
@@ -704,7 +765,6 @@
             } catch (error) {
                 console.error('提交錯誤:', error);
                 // 即使出錯也顯示成功（因為資料可能已經送達）
-                // 或者根據需求顯示錯誤訊息
                 showSuccess();
             }
         }
@@ -763,6 +823,31 @@
                     }
                 }
             }, 1000);
+        }
+        
+        // 除錯功能
+        function debugTokenInfo() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentReplyToken = urlParams.get('replyToken');
+            
+            const tokenInfo = document.getElementById('tokenInfo');
+            tokenInfo.innerHTML = `
+                <div><strong>當前URL:</strong></div>
+                <div style="word-break: break-all; font-size: 10px;">${window.location.href}</div>
+                <div style="margin-top: 10px;"><strong>ReplyToken:</strong> ${currentReplyToken || '未找到'}</div>
+                <div><strong>用戶ID:</strong> ${userId || '未獲取'}</div>
+                <div><strong>LIFF狀態:</strong> ${typeof liff !== 'undefined' && liff.isInClient() ? '在LINE內開啟' : '瀏覽器開啟'}</div>
+                <div><strong>LIFF登入狀態:</strong> ${typeof liff !== 'undefined' && liff.isLoggedIn() ? '已登入' : '未登入'}</div>
+                <div style="margin-top: 10px;"><strong>所有URL參數:</strong></div>
+                <div style="font-size: 10px;">${Array.from(urlParams.entries()).map(([key, value]) => `${key}=${value}`).join('<br>')}</div>
+            `;
+        }
+        
+        function updateDebugInfo() {
+            const tokenInfo = document.getElementById('tokenInfo');
+            if (!tokenInfo.classList.contains('hidden')) {
+                debugTokenInfo();
+            }
         }
     </script>
 </body>
