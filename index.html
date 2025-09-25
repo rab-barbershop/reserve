@@ -430,6 +430,8 @@
         let selectedTime = '';
         let selectedService = '';
         let countdownTimer = null;
+        let userId = '';
+        let replyToken = '';
         
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
@@ -456,16 +458,27 @@
                 .then(profile => {
                     if (profile) {
                         console.log('用戶ID:', profile.userId);
+                        userId = profile.userId;
                         
                         // 從 URL 參數獲取 replyToken
                         const urlParams = new URLSearchParams(window.location.search);
-                        const replyToken = urlParams.get('replyToken');
+                        replyToken = urlParams.get('replyToken');
                         
-                        console.log('從URL獲取replyToken:', replyToken || '未提供');
+                        if (replyToken) {
+                            console.log('從URL獲取replyToken:', replyToken);
+                        } else {
+                            console.warn('未找到replyToken，使用unknown');
+                            replyToken = 'unknown';
+                        }
                     }
                 })
                 .catch(err => {
                     console.error('LIFF初始化失敗:', err);
+                    userId = 'unknown';
+                    
+                    // 從 URL 參數獲取 replyToken
+                    const urlParams = new URLSearchParams(window.location.search);
+                    replyToken = urlParams.get('replyToken') || 'unknown';
                 });
         }
         
@@ -636,10 +649,6 @@
             
             showLoading('提交預約中...');
             
-            // 從 URL 參數獲取 replyToken
-            const urlParams = new URLSearchParams(window.location.search);
-            const replyToken = urlParams.get('replyToken');
-            
             // 準備提交資料
             const formData = new FormData();
             formData.append('designer', selectedDesigner);
@@ -649,7 +658,8 @@
             formData.append('phone', phone);
             formData.append('service', selectedService);
             formData.append('notes', document.getElementById('notes').value || '');
-            formData.append('replyToken', replyToken || 'unknown');
+            formData.append('userId', userId);
+            formData.append('replyToken', replyToken);
             
             console.log('提交的資料:', {
                 designer: selectedDesigner,
@@ -658,7 +668,8 @@
                 name: name,
                 phone: phone,
                 service: selectedService,
-                replyToken: replyToken || 'unknown'
+                userId: userId,
+                replyToken: replyToken
             });
             
             // 設置成功訊息內容
@@ -669,6 +680,8 @@
                     <div><strong>姓名：</strong>${name}</div>
                     <div><strong>電話：</strong>${phone}</div>
                     <div><strong>服務項目：</strong>${selectedService}</div>
+                    <div><strong>用戶ID：</strong>${userId}</div>
+                    <div><strong>Reply Token：</strong>${replyToken}</div>
                 </div>
             `;
             document.getElementById('successDetails').innerHTML = successDetails;
